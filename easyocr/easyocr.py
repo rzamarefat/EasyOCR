@@ -30,7 +30,7 @@ LOGGER = getLogger(__name__)
 class Reader(object):
 
     def __init__(self, lang_list, gpu=True, model_storage_directory=None,
-                 user_network_directory=None, detect_network="craft", 
+                 user_network_directory=None, detect_network="yolov8", 
                  recog_network='standard', download_enabled=True, 
                  detector=True, recognizer=True, verbose=True, 
                  quantize=True, cudnn_benchmark=False):
@@ -85,7 +85,7 @@ class Reader(object):
         self.recognition_models = recognition_models
 
         # check and download detection model
-        self.support_detection_network = ['craft', 'dbnet18']
+        self.support_detection_network = ['craft', 'dbnet18', 'yolov8']
         self.quantize=quantize, 
         self.cudnn_benchmark=cudnn_benchmark
         if detector:
@@ -239,6 +239,8 @@ class Reader(object):
                 from .detection import get_detector, get_textbox
             elif self.detect_network in ['dbnet18']:
                 from .detection_db import get_detector, get_textbox
+            elif self.detect_network in ['yolov8']:
+                from .detection_yolov8 import get_detector, get_textbox
             else:
                 raise RuntimeError("Unsupport detector network. Support networks are craft and dbnet18.")
             self.get_textbox = get_textbox
@@ -268,6 +270,8 @@ class Reader(object):
         return detector_path
 
     def initDetector(self, detector_path):
+        print("detector_path----------------------------------------", detector_path)
+
         return self.get_detector(detector_path, 
                                  device = self.device, 
                                  quantize = self.quantize, 
@@ -277,6 +281,7 @@ class Reader(object):
     def setDetector(self, detect_network):
         detector_path = self.getDetectorPath(detect_network)
         self.detector = self.initDetector(detector_path)
+
     
     def setModelLanguage(self, language, lang_list, list_lang, list_lang_string):
         self.model_lang = language
@@ -333,7 +338,19 @@ class Reader(object):
                                     bbox_min_size = bbox_min_size, 
                                     max_candidates = max_candidates,
                                     )
-
+                                    
+        print("=================")
+        
+        for batch in text_box_list:
+            for bbox in batch:
+                bbox = bbox.astype(int)
+                bbox = bbox.reshape((-1, 1, 2))
+                cv2.polylines(img, [bbox], True, (0,255,255), 3)
+            cv2.imshow("img", img)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+            print("====")
+        exit()
         horizontal_list_agg, free_list_agg = [], []
         for text_box in text_box_list:
             horizontal_list, free_list = group_text_box(text_box, slope_ths,

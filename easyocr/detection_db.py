@@ -214,7 +214,7 @@ def get_textbox(detector,
                              poly = poly, 
                              device = device
                              )
-                
+    
     result = [[np.array(box).astype(np.int32).reshape((-1)) for box in polys] for polys in polys_list]
 
     return result
